@@ -11,8 +11,39 @@ no server, no account. Everything is stored on your own phone in localStorage.
 3. Wait a minute, then open `https://<your-username>.github.io/meat-log/` in Safari.
 4. Share button → **Add to Home Screen**.
 
-It works offline once installed. When you update `index.html`, bump `CACHE` in `sw.js`
-(e.g. `meatlog-v2`) so your phone picks up the new version.
+It works offline once installed.
+
+## Updating after you change the files
+
+Push the new files to GitHub and the app picks them up by itself — you do **not** need to bump
+anything for content changes. The service worker is network-first, and the page is fetched with
+`cache:'no-store'` so Safari's own HTTP cache (GitHub Pages sends `max-age=600` on HTML) can't
+hand back a stale copy.
+
+What you'll see: open the app, and if a new build is live a toast appears saying **"A new version
+is ready"** with a **Reload** button. Tap it and you're on the new version immediately. Without
+that prompt iOS typically installs the update on one launch and only activates it on the next,
+which is why the prompt exists.
+
+It also checks whenever the app returns to the foreground, and **Data → Check for an update**
+forces a check and tells you if you're already current. The running build's date shows under
+Storage, so you can confirm at a glance which version you're on.
+
+Two things worth knowing: update the `APP_VERSION` date string in `index.html` when you deploy, so
+the version display means something. And if you open the app with no signal you get the cached copy
+— that's the offline fallback working as intended.
+
+## Screens
+
+The header is contextual. On **Today** it shows the date nav and the six running totals; on every
+other tab it collapses to just the screen's name, because carbs and sodium are Today's numbers and
+have nothing to say on the Weight or Foods screens. It also means those screens start 135px further
+up, so less of them sits under the header as you scroll.
+
+Tapping the weight card on Today opens the Weight screen with the date already set, but does not
+focus the input — so the keyboard stays down and you can see your history. Tap the weight field
+yourself when you want to type. Saving takes you straight back to Today. Reaching the Weight tab yourself keeps you there after
+saving, so you can enter a run of past weigh-ins without being bounced home each time.
 
 ## On a computer
 

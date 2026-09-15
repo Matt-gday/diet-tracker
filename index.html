@@ -57,7 +57,11 @@ header{
   border-bottom:1px solid var(--line);
 }
 /* one column width shared by header, content and tab bar */
-.datebar,.strip{max-width:640px;margin-left:auto;margin-right:auto}
+.datebar,.strip,.pagehead{max-width:640px;margin-left:auto;margin-right:auto}
+/* the macro totals belong to Today, so only Today shows them */
+.pagehead{display:none;padding:3px 0 6px}
+body.page .pagehead{display:block}
+body.page .datebar,body.page .strip{display:none}
 .datebar{display:flex;align-items:center;gap:8px}
 .datebar .d{flex:1;text-align:center}
 .datebar .d .dow{font-size:.72rem;color:var(--ink-soft);letter-spacing:.04em}
@@ -335,6 +339,7 @@ nav.tabs button{position:relative}
 
 <div class="demobar">Demo data — your own log is safe and untouched</div>
 <header>
+  <div class="pagehead" id="pageHead"><h1 id="pageTitle">Weight</h1></div>
   <div class="datebar">
     <button class="navb" id="prevDay" aria-label="Previous day">‹</button>
     <div class="d">
@@ -512,6 +517,7 @@ nav.tabs button{position:relative}
     <div class="card">
       <h3 style="margin-bottom:6px">Storage</h3>
       <div id="storage" class="tiny"></div>
+      <button class="btn sec sm" id="checkUpdate" style="margin-top:10px">Check for an update</button>
     </div>
   </section>
 </main>
@@ -684,6 +690,7 @@ nav.tabs button{position:relative}
 
 <script>
 'use strict';
+const APP_VERSION='2026-09-15';
 const REAL_KEY='meatlog_v1', DEMO_KEY='meatlog_demo_v1', MODE_KEY='meatlog_mode';
 let demoMode=false;
 try{demoMode=localStorage.getItem(MODE_KEY)==='demo'}catch(e){}
@@ -2106,9 +2113,17 @@ $('#saveWeight').addEventListener('click',()=>{
   if(kg<=0||kg>400){toast('Enter a weight in kg');return}
   const ex=S.weights.find(w=>w.date===d);
   if(ex)ex.kg=kg;else S.weights.push({date:d,kg,ts:Date.now()});
-  save();$('#wKg').value='';renderWeight();renderToday();renderTrends();toast('Weight saved');
+  save();$('#wKg').value='';
+  if(document.activeElement)document.activeElement.blur();
+  renderWeight();renderTrends();
+  if(cameFromToday){cameFromToday=false;day=d<=today()?d:day;go('today')}
+  else renderToday();
+  toast(`${kg.toFixed(1)} kg saved`);
 });
-function gotoWeight(){go('weight');$('#wDate').value=day;$('#wKg').focus()}
+let cameFromToday=false;
+// Just show the Weight screen — no autofocus, so the keyboard doesn't leap up
+// and cover the history you probably came to look at.
+function gotoWeight(){cameFromToday=true;go('weight');$('#wDate').value=day}
 $('#wCard').addEventListener('click',gotoWeight);
 $('#wCard').addEventListener('keydown',e=>{
   if(e.key==='Enter'||e.key===' '){e.preventDefault();gotoWeight()}
@@ -2328,8 +2343,17 @@ function renderData(){
   $('#backupInfo').textContent=S.lastBackup?'Last backup '+pretty(S.lastBackup.slice(0,10))+'.':'No backup downloaded yet.';
   const bytes=new Blob([JSON.stringify(S)]).size;
   drawBackupWarning();
-  $('#storage').textContent=`${S.templates.length} saved foods · ${S.meals.length} meals · ${S.log.length} entries · ${S.weights.length} weigh-ins · ${(bytes/1024).toFixed(1)} KB`;
+  $('#storage').innerHTML=`${S.templates.length} saved foods · ${S.meals.length} meals · ${S.log.length} entries · ${S.weights.length} weigh-ins · ${(bytes/1024).toFixed(1)} KB`
+    +`<br>Version ${APP_VERSION}`;
 }
+$('#checkUpdate').addEventListener('click',async()=>{
+  if(!('serviceWorker' in navigator)||!swReg){toast('Updates are not available here');return}
+  try{
+    await swReg.update();
+    if(swReg.waiting)offerUpdate(swReg.waiting);
+    else toast('You are on the latest version');
+  }catch(e){toast('Could not check — are you online?')}
+});
 $('#saveTargets').addEventListener('click',()=>{
   S.targets={cal:n($('#tCal').value)||0,p:n($('#tP').value)||0,c:n($('#tC').value)||0,
     na:n($('#tNa').value)||0,ml:n($('#tMl').value)||0,goal:n($('#tGoal').value)||0};
@@ -2447,17 +2471,23 @@ $('#jFile').addEventListener('change',e=>{
 });
 
 /* ---------- nav ---------- */
+const TAB_TITLES={foods:'Foods',weight:'Weight',trends:'Trends',data:'Data'};
+let curTab='today';
 function go(tab){
+  curTab=tab;
   $$('.view').forEach(v=>v.classList.remove('on'));
   $('#v-'+tab).classList.add('on');
   $$('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  document.body.classList.toggle('page',tab!=='today');
+  if(TAB_TITLES[tab])$('#pageTitle').textContent=TAB_TITLES[tab];
   window.scrollTo(0,0);
+  if(tab==='today'){renderHeader();renderToday()}
   if(tab==='trends')renderTrends();
   if(tab==='data')renderData();
   if(tab==='weight')renderWeight();
   if(tab==='foods')renderFoods();
 }
-$$('nav.tabs button').forEach(b=>b.addEventListener('click',()=>go(b.dataset.tab)));
+$$('nav.tabs button').forEach(b=>b.addEventListener('click',()=>{cameFromToday=false;go(b.dataset.tab)}));
 $('#prevDay').addEventListener('click',()=>{day=shift(day,-1);renderHeader();renderToday()});
 $('#nextDay').addEventListener('click',()=>{if(day<today()){day=shift(day,1);renderHeader();renderToday()}});
 $('#openPicker').addEventListener('click',()=>{$('#pickDay').textContent=pretty(day).toLowerCase();renderPick();open('#sh-pick')});
@@ -2497,8 +2527,41 @@ if(!demoMode&&!S.templates.length&&!S.log.length){
 
 renderAll();
 refreshPrompt();
-if('serviceWorker' in navigator)
-  navigator.serviceWorker.register('sw.js').catch(()=>{});
+/* ---------- updates ---------- */
+// iOS usually installs a new service worker on one launch and activates it on the
+// next. Checking on every launch and on return to the foreground, then offering a
+// reload, makes an update land the first time you notice it rather than the second.
+let swReg=null,updateOffered=false;
+
+function offerUpdate(worker){
+  if(updateOffered)return;
+  updateOffered=true;
+  toast('A new version is ready',()=>{
+    if(worker)worker.postMessage('skipWaiting');
+    setTimeout(()=>location.reload(),150);
+  });
+  const t=$('#toast .undo');
+  if(t)t.textContent='Reload';
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').then(reg=>{
+    swReg=reg;
+    if(reg.waiting&&navigator.serviceWorker.controller)offerUpdate(reg.waiting);
+    reg.addEventListener('updatefound',()=>{
+      const sw=reg.installing;
+      if(!sw)return;
+      sw.addEventListener('statechange',()=>{
+        if(sw.state==='installed'&&navigator.serviceWorker.controller)offerUpdate(sw);
+      });
+    });
+    reg.update().catch(()=>{});
+  }).catch(()=>{});
+
+  document.addEventListener('visibilitychange',()=>{
+    if(document.visibilityState==='visible'&&swReg)swReg.update().catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
