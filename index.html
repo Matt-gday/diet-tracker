@@ -34,14 +34,22 @@
   --r:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;background:#EEEEFA}
+html{height:100%;background:#EEEEFA}
+html,body{margin:0;padding:0}
 body{
   background:var(--paper);color:var(--ink);
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   font-size:16px;line-height:1.45;
-  padding-bottom:calc(72px + env(safe-area-inset-bottom));
   -webkit-text-size-adjust:100%;
+  /* a column the exact height of the visible window, so the tab bar is the last
+     thing in the flow rather than floating over it. 100dvh tracks iOS's changing
+     viewport; the 100vh above it is the fallback for anything older. */
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  flex-direction:column;
 }
+main{flex:1 0 auto}
 .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
 h1,h2,h3{margin:0;font-weight:640;letter-spacing:-0.02em}
 h1{font-size:1.3rem}
@@ -55,7 +63,12 @@ header{
   position:sticky;top:0;z-index:20;background:var(--paper);
   padding:calc(10px + env(safe-area-inset-top)) 14px 8px;
   border-bottom:1px solid var(--line);
+  transform:translateZ(0);
+  -webkit-backface-visibility:hidden;
+  backface-visibility:hidden;
+  -webkit-font-smoothing:antialiased;
 }
+nav.tabs{transform:translateZ(0);-webkit-backface-visibility:hidden;backface-visibility:hidden}
 /* one column width shared by header, content and tab bar */
 .datebar,.strip,.pagehead{max-width:640px;margin-left:auto;margin-right:auto}
 /* the macro totals belong to Today, so only Today shows them */
@@ -86,7 +99,7 @@ body.page .datebar,body.page .strip{display:none}
 .c-ml .v{color:var(--fluid)} .c-ml i{background:var(--fluid)}
 .over i{background:var(--alert)!important}
 
-main{padding:14px 14px 20px;max-width:640px;margin:0 auto}
+main{padding:14px 14px 20px;max-width:640px;margin:0 auto;width:100%;box-sizing:border-box}
 .view{display:none}
 .view.on{display:block}
 
@@ -183,7 +196,8 @@ label.fl span{display:block;font-size:.78rem;color:var(--ink-soft);margin-bottom
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300B8D4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.8 7h10.4l-1.1 12.4a2.2 2.2 0 0 1-2.2 2h-3.8a2.2 2.2 0 0 1-2.2-2Z'/%3E%3Cpath d='M5.4 7h13.2'/%3E%3C/svg%3E")}
 
 /* tabs */
-nav.tabs{position:fixed;bottom:0;left:0;right:0;z-index:30;display:flex;justify-content:center;
+nav.tabs{position:sticky;bottom:0;z-index:30;display:flex;justify-content:center;
+  flex:none;margin-top:auto;
   background:var(--card);border-top:1px solid var(--line);
   padding-bottom:env(safe-area-inset-bottom)}
 nav.tabs button{flex:1 1 0;max-width:128px;padding:9px 2px 8px;color:var(--ink-soft);font-size:.65rem;letter-spacing:.01em;
@@ -307,10 +321,10 @@ nav.tabs button{position:relative}
 @media(hover:hover) and (pointer:fine){.wcard:hover{border-color:var(--ink-soft)}}
 .wcard.done{background:#E9F7F3;border-color:#A6DECC}
 /* a recorded weight is real data, not a hint — give it the weight of a figure */
-.wcard.done #wToday{color:var(--ink);font-weight:720;font-size:1.3rem;line-height:1.2;
-  letter-spacing:-0.03em;font-variant-numeric:tabular-nums;margin-top:2px}
-.wcard.done #wToday .tick{color:#04795F;font-size:.85rem;font-weight:700;margin-left:6px;
-  letter-spacing:0;vertical-align:2px}
+.wcard.done #wToday{color:var(--ink);font-weight:720;font-size:1.05rem;line-height:1.25;
+  letter-spacing:-0.02em;font-variant-numeric:tabular-nums;margin-top:2px}
+.wcard.done #wToday .tick{color:#04795F;font-size:.75rem;font-weight:700;margin-left:6px;
+  letter-spacing:0;vertical-align:1px}
 .wcard:not(.done) #wToday{color:var(--ink-soft)}
 .streak{font-size:2.1rem;font-weight:680;letter-spacing:-0.03em;line-height:1}
 /* pointer devices get hover feedback; touch devices keep :active only */
@@ -325,7 +339,6 @@ nav.tabs button{position:relative}
 }
 /* wider than one column: give the page some air and cap input widths */
 @media(min-width:700px){
-  body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
   main{padding-top:18px}
   .grid2,.grid3{gap:10px}
   #srvMult,#wKg,#mlName,#nfMealName{max-width:280px}
@@ -432,7 +445,7 @@ nav.tabs button{position:relative}
     <div class="card">
       <h2 style="margin-bottom:10px">Record weight</h2>
       <div class="grid2">
-        <label class="fl"><span>Weight (kg)</span><input type="number" id="wKg" step="0.1" inputmode="decimal" placeholder="134.0"></label>
+        <label class="fl"><span>Weight (kg)</span><input type="number" id="wKg" step="0.1" inputmode="decimal" placeholder="0.0"></label>
         <label class="fl"><span>Date</span><input type="date" id="wDate"></label>
       </div>
       <button class="btn" id="saveWeight">Save weight</button>
@@ -443,6 +456,8 @@ nav.tabs button{position:relative}
         <span class="tiny num" id="wCount"></span>
       </div>
       <div id="wList"></div>
+      <button class="btn sec sm" id="wMore" style="margin-top:11px;display:none">Show more</button>
+      <div class="tiny" id="wAllShown" style="margin-top:10px;display:none">That's all of them.</div>
     </div>
     <div class="card">
       <h3 style="margin-bottom:6px">Import from Weight Diary</h3>
@@ -690,7 +705,7 @@ nav.tabs button{position:relative}
 
 <script>
 'use strict';
-const APP_VERSION='2026-09-15';
+const APP_VERSION='2026-09-16c';
 const REAL_KEY='meatlog_v1', DEMO_KEY='meatlog_demo_v1', MODE_KEY='meatlog_mode';
 let demoMode=false;
 try{demoMode=localStorage.getItem(MODE_KEY)==='demo'}catch(e){}
@@ -739,7 +754,7 @@ function setDemo(on){
   try{localStorage.setItem(MODE_KEY,on?'demo':'real')}catch(e){}
   S=load();migrate();
   if(on)save();                   // persist the freshly built demo
-  day=today();openGroups.clear();
+  day=today();openGroups.clear();wShown=40;
   renderAll();
   toast(on?'Showing demo data — your own is untouched':'Back to your own data');
 }
@@ -2085,20 +2100,35 @@ $('#mDelete').addEventListener('click',()=>{
 });
 
 /* ---------- weight ---------- */
+let wShown=40;
 function renderWeight(){
   $('#wDate').max=today();
   if(!$('#wDate').value)$('#wDate').value=today();
   const ws=S.weights.slice().sort((a,b)=>b.date.localeCompare(a.date));
   $('#wCount').textContent=ws.length?ws.length+' entries':'';
-  $('#wList').innerHTML=ws.length?ws.slice(0,40).map((w,i)=>{
+  if(wShown>ws.length)wShown=Math.max(40,Math.ceil(ws.length/40)*40);
+  $('#wList').innerHTML=ws.length?ws.slice(0,wShown).map((w,i)=>{
     const prev=ws[i+1],dif=prev?w.kg-prev.kg:null;
     return `<div class="entry"><div class="body">
       <div class="nm num">${w.kg.toFixed(1)} kg</div>
       <div class="tiny num">${pretty(w.date)}${dif!==null?` · ${dif>0?'+':''}${r1(dif)} kg`:''}</div>
       </div><button class="x" data-wdel="${w.date}" aria-label="Remove">✕</button></div>`}).join('')
-    +(ws.length>40?`<div class="tiny" style="padding-top:8px">Showing 40 of ${ws.length}. The full set is in your exports.</div>`:'')
     :`<div class="empty">No weights yet.</div>`;
+  const left=Math.max(0,ws.length-wShown);
+  const more=$('#wMore');
+  if(left){
+    more.style.display='block';
+    more.textContent=`Show ${Math.min(40,left)} more · ${left} still to come`;
+  } else {
+    more.style.display='none';
+  }
+  $('#wAllShown').style.display=(!left&&ws.length>40)?'block':'none';
 }
+$('#wMore').addEventListener('click',()=>{
+  wShown+=40;renderWeight();
+  // keep the button under your thumb rather than jumping to the top
+  $('#wMore').scrollIntoView({block:'end',behavior:'smooth'});
+});
 $('#wList').addEventListener('click',e=>{
   const b=e.target.closest('[data-wdel]');if(!b)return;
   const w=S.weights.find(x=>x.date===b.dataset.wdel);if(!w)return;
