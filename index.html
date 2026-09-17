@@ -708,7 +708,7 @@ nav.tabs button{position:relative}
 
 <script>
 'use strict';
-const APP_VERSION='2026-09-17';
+const APP_VERSION='2026-09-17b';
 const REAL_KEY='meatlog_v1', DEMO_KEY='meatlog_demo_v1', MODE_KEY='meatlog_mode';
 let demoMode=false;
 try{demoMode=localStorage.getItem(MODE_KEY)==='demo'}catch(e){}
@@ -726,9 +726,20 @@ const DEF={
   lastBackup:null, v:1
 };
 let S=load();
-migrate();
 function migrate(){
   let touched=false;
+  // Entries logged before the 3am rule were filed against the calendar date, so a
+  // 12:30am meal landed on the following day. Spot those by their own timestamp and
+  // move them back. An entry already filed correctly has a stored date one day
+  // behind its timestamp, so this cannot run twice on the same entry.
+  (S.log||[]).forEach(e=>{
+    if(!e.ts||!e.date)return;
+    const d=new Date(e.ts);
+    if(d.getHours()>=DAY_START)return;
+    if(iso(d)!==e.date)return;          // already sits on its logical day
+    e.date=shift(e.date,-1);
+    touched=true;
+  });
   (S.templates||[]).forEach(t=>{
     if(t.per===undefined||t.unit===undefined){t.per=1;t.unit='serve';touched=true}
   });
@@ -2599,6 +2610,7 @@ if(!demoMode&&!S.templates.length&&!S.log.length){
   save();
 }
 
+migrate();
 renderAll();
 refreshPrompt();
 /* ---------- updates ---------- */
