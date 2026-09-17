@@ -116,6 +116,7 @@ main{padding:14px 14px 20px;max-width:640px;margin:0 auto;width:100%;box-sizing:
 .entry .body.tappable{cursor:pointer}
 @media(hover:hover) and (pointer:fine){.entry .body.tappable:hover .nm{color:var(--violet)}}
 .entry .mac{font-size:.75rem;color:var(--ink-soft);margin-top:2px}
+.etime{color:var(--violet);font-weight:600}
 .entry .cal{font-weight:640;white-space:nowrap}
 .x{width:30px;height:30px;border-radius:8px;color:var(--ink-soft);font-size:1rem;flex:none;
   display:flex;align-items:center;justify-content:center}
@@ -571,6 +572,8 @@ nav.tabs button{position:relative}
     <div class="muted" id="srvServe" style="margin-bottom:12px"></div>
     <label class="fl"><span id="srvLbl">How many serves</span>
       <input type="number" id="srvMult" step="0.25" inputmode="decimal" value="1"></label>
+    <label class="fl" id="srvTimeRow" style="display:none"><span>Time</span>
+      <input type="time" id="srvTime"></label>
     <div style="margin-bottom:12px" id="srvQuick"></div>
     <div class="card num" id="srvPreview" style="background:var(--paper)"></div>
     <div class="btnrow">
@@ -705,7 +708,7 @@ nav.tabs button{position:relative}
 
 <script>
 'use strict';
-const APP_VERSION='2026-09-16c';
+const APP_VERSION='2026-09-17';
 const REAL_KEY='meatlog_v1', DEMO_KEY='meatlog_demo_v1', MODE_KEY='meatlog_mode';
 let demoMode=false;
 try{demoMode=localStorage.getItem(MODE_KEY)==='demo'}catch(e){}
@@ -853,7 +856,30 @@ function buildDemo(){
 /* ---------- dates ---------- */
 function pad(v){return String(v).padStart(2,'0')}
 const iso=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-const today=()=>iso(new Date());
+// A log day runs 3am to 3am, so anything eaten after midnight still belongs to
+// the day you were awake for. Everything that asks "what day is it" goes through
+// here, so the whole app agrees.
+const DAY_START=3;
+function today(){
+  const d=new Date();
+  if(d.getHours()<DAY_START)d.setDate(d.getDate()-1);
+  return iso(d);
+}
+// The clock moment a time-of-day falls on, given the logical day it belongs to.
+function tsFor(dateStr,h,m){
+  const d=parseISO(dateStr);
+  if(h<DAY_START)d.setDate(d.getDate()+1);   // 1am belongs to the night after
+  d.setHours(h,m,0,0);
+  return d.getTime();
+}
+function fmtTime(ts){
+  if(!ts)return '';
+  const d=new Date(ts);
+  let h=d.getHours();const m=pad(d.getMinutes());
+  const ap=h<12?'am':'pm';
+  h=h%12||12;
+  return `${h}:${m}${ap}`;
+}
 function parseISO(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
 function shift(s,days){const d=parseISO(s);d.setDate(d.getDate()+days);return iso(d)}
 const DOW=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -1068,7 +1094,7 @@ function itemRow(e,inGroup){
       <div class="body${editable?' tappable':''}"${editable?` data-editentry="${e.id}" role="button" tabindex="0"`:''}>
         <div class="nm">${e.tag==='drink'?'<span class="dot"></span>':''}${esc(e.name)}${entryQty(e)?` <span class="muted num">${entryQty(e)}</span>`:''}</div>
         ${(!inGroup&&e.meal)?`<div class="mealtag">${esc(e.meal)}</div>`:''}
-        <div class="mac num">${macLine(e)}</div>
+        <div class="mac num">${e.ts?`<span class="etime">${fmtTime(e.ts)}</span> · `:''}${macLine(e)}</div>
       </div>
       <div class="cal num">${Math.round(e.cal)}</div>
       <button class="x" data-del="${e.id}" aria-label="Remove ${esc(e.name)}">✕</button>
@@ -1346,6 +1372,12 @@ function openServe(id,editEntry){
     +(!srvEdit&&n(t.lastQty)>0&&r1(t.lastQty)!==r1(per)
       ? `<br><span style="color:var(--violet)">Last time: ${esc(amountLabel(t.lastQty,u))}</span>`:'')
     +(srvEdit?`<br><span style="color:var(--violet)">Editing what you logged${srvEdit.meal?` in ${esc(srvEdit.meal)}`:''}</span>`:'');
+  const tr=$('#srvTimeRow');
+  tr.style.display=srvEdit?'block':'none';
+  if(srvEdit){
+    const d=srvEdit.ts?new Date(srvEdit.ts):new Date();
+    $('#srvTime').value=pad(d.getHours())+':'+pad(d.getMinutes());
+  }
   $('#srvLbl').textContent=u==='serve'?'How many serves'
     :(isMeasure(u)?`How many ${u}`:`How many ${plural(u,2)}`);
   const last=srvEdit?n(srvEdit.qty!=null?srvEdit.qty:n(srvEdit.mult)*per)
@@ -1392,13 +1424,25 @@ $('#srvSave').addEventListener('click',()=>{
     const live=S.log.find(x=>x.id===srvEdit.id);
     if(!live){toast('That entry is no longer there');shutOne('#sh-serve');return}
     const before=Object.assign({},live);
-    if(r1(before.qty!=null?before.qty:before.mult*per)===r1(qty)){
-      shutOne('#sh-serve');return;               // nothing changed, say nothing
+    const tv=$('#srvTime').value;
+    let newTs=live.ts;
+    if(/^\d{2}:\d{2}$/.test(tv)){
+      const [hh,mm]=tv.split(':').map(Number);
+      newTs=tsFor(live.date,hh,mm);
     }
-    Object.assign(live,{mult,qty,unit:u,per},macros);
+    const sameQty=r1(before.qty!=null?before.qty:before.mult*per)===r1(qty);
+    // the stored stamp carries seconds, the time field doesn't — compare to the minute
+    const od=live.ts?new Date(live.ts):null;
+    const oldToMinute=od?tsFor(live.date,od.getHours(),od.getMinutes()):null;
+    const sameTime=newTs===oldToMinute;
+    if(sameQty&&sameTime){shutOne('#sh-serve');return}
+    Object.assign(live,{mult,qty,unit:u,per,ts:newTs},macros);
     t.lastQty=qty;
     save();shutOne('#sh-serve');renderHeader();renderToday();
-    toast(`${t.name} — now ${amountLabel(qty,u)}`,()=>{
+    const what=sameQty?`moved to ${fmtTime(newTs)}`
+              :(sameTime?`now ${amountLabel(qty,u)}`
+                        :`now ${amountLabel(qty,u)} at ${fmtTime(newTs)}`);
+    toast(`${t.name} — ${what}`,()=>{
       const back=S.log.find(x=>x.id===before.id);
       if(back)Object.assign(back,before);
       save();renderHeader();renderToday();toast('Change undone');
