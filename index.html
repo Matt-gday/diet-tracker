@@ -6,7 +6,7 @@
 <title>Meat Log</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#2A2352">
-<meta name="color-scheme" content="light">
+<meta name="color-scheme" content="light dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Meat Log">
@@ -14,27 +14,74 @@
 <style>
 :root{
   color-scheme:light;
-  /* cool base: pale periwinkle paper, deep indigo ink */
+  /* surfaces */
   --paper:#EEEEFA;
   --card:#FBFAFF;
+  --field:#FFFFFF;
+  --line:#D9D5EF;
   --ink:#1D1A38;
   --ink-soft:#5F5A88;
-  --line:#D9D5EF;
-  /* primary: vivid violet */
+  /* violet: solid fills vs violet-as-text (they diverge in dark mode) */
   --violet:#5B3FD6;
+  --violet-ink:#5B3FD6;
   --violet-deep:#4227B5;
-  /* macro hues: summer-bright, all cool or jewel-toned */
+  --meal-tint:#F4F1FE;
+  --on-solid:#FFFFFF;
+  --sw-thumb:#FBFAFF;
+  /* macro hues */
   --protein:#6D3FE0;
-  --tallow:#C246C9;         /* fat: orchid */
-  --carb:#00A382;           /* carbs: teal */
-  --salt:#2F7FE8;           /* sodium: bright blue */
-  --fluid:#00B8D4;          /* fluid: cyan */
+  --tallow:#C246C9;
+  --carb:#00A382;
+  --salt:#2F7FE8;
+  --fluid:#00B8D4;
+  /* state */
   --ok:#00A382;
-  --alert:#E8336B;          /* over limit, deletions, weight gain */
+  --ok-ink:#04795F;
+  --alert:#E8336B;
+  --up-ink:#C21E56;
+  --done-bg:#E9F7F3;
+  --done-border:#A6DECC;
+  --warn-bg:#FDE9F0;
+  --warn-border:#F5A8C2;
+  --warn-ink:#9B1140;
+  --scrim:rgba(29,26,56,.45);
+  --shadow:rgba(29,26,56,.25);
   --r:14px;
 }
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#13121D;
+  --card:#1D1B2B;
+  --field:#272438;
+  --line:#332F49;
+  --ink:#ECEBF7;
+  --ink-soft:#A29DC2;
+  --violet:#6A48E0;
+  --violet-ink:#A794FF;
+  --violet-deep:#B9A7FF;
+  --meal-tint:#241F3D;
+  --on-solid:#FFFFFF;
+  --sw-thumb:#CFCBEC;
+  --protein:#A78BFF;
+  --tallow:#E48BEA;
+  --carb:#34D3AE;
+  --salt:#6BA8FF;
+  --fluid:#45D8F0;
+  --ok:#34D3AE;
+  --ok-ink:#4FE0BC;
+  --alert:#FF6B96;
+  --up-ink:#FF7EA3;
+  --done-bg:#16302A;
+  --done-border:#2F6A5B;
+  --warn-bg:#39131F;
+  --warn-border:#7C2A45;
+  --warn-ink:#FFA9C1;
+  --scrim:rgba(6,5,12,.62);
+  --shadow:rgba(0,0,0,.5);
+}
+
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{height:100%;background:#EEEEFA}
+html{height:100%;background:var(--paper)}
 html,body{margin:0;padding:0}
 body{
   background:var(--paper);color:var(--ink);
@@ -114,9 +161,9 @@ main{padding:14px 14px 20px;max-width:640px;margin:0 auto;width:100%;box-sizing:
 .entry .body{flex:1;min-width:0}
 .entry .nm{font-weight:580;letter-spacing:-0.01em;word-break:break-word}
 .entry .body.tappable{cursor:pointer}
-@media(hover:hover) and (pointer:fine){.entry .body.tappable:hover .nm{color:var(--violet)}}
+@media(hover:hover) and (pointer:fine){.entry .body.tappable:hover .nm{color:var(--violet-ink)}}
 .entry .mac{font-size:.75rem;color:var(--ink-soft);margin-top:2px}
-.etime{color:var(--violet);font-weight:600}
+.etime{color:var(--violet-ink);font-weight:600}
 .entry .cal{font-weight:640;white-space:nowrap}
 .x{width:30px;height:30px;border-radius:8px;color:var(--ink-soft);font-size:1rem;flex:none;
   display:flex;align-items:center;justify-content:center}
@@ -127,19 +174,19 @@ main{padding:14px 14px 20px;max-width:640px;margin:0 auto;width:100%;box-sizing:
 .sw{width:38px;height:22px;border-radius:99px;background:var(--line);position:relative;
   flex:none;transition:background .18s}
 .sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;
-  background:var(--card);transition:transform .18s;box-shadow:0 1px 2px rgba(29,26,56,.25)}
+  background:var(--sw-thumb);transition:transform .18s;box-shadow:0 1px 2px var(--shadow)}
 .sw[aria-checked="true"]{background:var(--violet)}
 .sw[aria-checked="true"] i{transform:translateX(16px)}
 body.demo .demorow{justify-content:space-between}
-body.demo #demoLbl{color:var(--violet);font-weight:640}
-.demobar{display:none;background:var(--violet);color:#fff;text-align:center;
+body.demo #demoLbl{color:var(--violet-ink);font-weight:640}
+.demobar{display:none;background:var(--violet);color:var(--on-solid);text-align:center;
   font-size:.72rem;font-weight:600;padding:5px 10px;letter-spacing:.01em}
 body.demo .demobar{display:block}
 .addbtn{display:flex;align-items:center;justify-content:center;gap:14px;padding:15px;margin-bottom:11px}
-.addbtn .ic{width:26px;height:26px;stroke:#fff;fill:none;stroke-width:1.7;
+.addbtn .ic{width:26px;height:26px;stroke:var(--on-solid);fill:none;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round;flex:none}
 .addbtn .ic:first-child{width:22px;height:22px;stroke-width:2.2}
-.btn{display:block;width:100%;padding:13px;border-radius:12px;background:var(--violet);color:#fff;
+.btn{display:block;width:100%;padding:13px;border-radius:12px;background:var(--violet);color:var(--on-solid);
   font-weight:620;text-align:center;letter-spacing:-0.01em}
 .btn:active{filter:brightness(.9)}
 .btn.sec{background:var(--card);color:var(--ink);border:1px solid var(--line)}
@@ -151,7 +198,7 @@ body.demo .demobar{display:block}
 
 input[type=text],input[type=number],input[type=date],input[type=search],textarea,select{
   width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);
-  background:#fff;appearance:none}
+  background:var(--field);appearance:none}
 textarea{min-height:88px;resize:vertical;line-height:1.4}
 label.fl{display:block;margin-bottom:10px}
 label.fl span{display:block;font-size:.78rem;color:var(--ink-soft);margin-bottom:4px}
@@ -163,24 +210,24 @@ label.fl span{display:block;font-size:.78rem;color:var(--ink-soft);margin-bottom
 .tpl:last-child{border-bottom:none}
 .tpl .body{flex:1;min-width:0}
 .tpl .nm{font-weight:580;letter-spacing:-0.01em}
-.add{width:38px;height:38px;flex:none;border-radius:10px;background:var(--violet);color:#fff;
+.add{width:38px;height:38px;flex:none;border-radius:10px;background:var(--violet);color:var(--on-solid);
   font-size:1.2rem;font-weight:500;display:flex;align-items:center;justify-content:center}
 .add:active{filter:brightness(.9)}
-.tpl.meal{background:#F4F1FE}
+.tpl.meal{background:var(--meal-tint)}
 .mtag{display:inline-block;font-size:.6rem;font-weight:640;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--violet);border:1px solid var(--violet);border-radius:4px;padding:0 4px;vertical-align:2px;opacity:.85}
+  color:var(--violet-ink);border:1px solid var(--violet-ink);border-radius:4px;padding:0 4px;vertical-align:2px;opacity:.85}
 .matchline{margin-top:6px}
 .amtrow{display:flex;align-items:center;gap:8px;margin-top:8px}
 .amtrow input{width:84px;padding:8px;text-align:center}
 .amtrow span{white-space:nowrap}
-.amtest{color:var(--violet);margin-top:4px}
+.amtest{color:var(--violet-ink);margin-top:4px}
 .badge{display:inline-block;font-size:.68rem;font-weight:600;padding:2px 7px;border-radius:99px;
   border:1px solid var(--line);background:var(--paper);color:var(--ink-soft)}
 .badge.reuse{border-color:var(--ok);color:var(--ok)}
-.badge.newf{border-color:var(--violet);color:var(--violet)}
+.badge.newf{border-color:var(--violet-ink);color:var(--violet-ink)}
 .badge.repl{border-color:var(--tallow);color:var(--tallow)}
 .seclbl{font-size:.7rem;color:var(--ink-soft);padding:2px 0 6px;border-bottom:1px solid var(--line);margin-bottom:2px}
-.mealtag{font-size:.68rem;color:var(--violet);font-weight:580}
+.mealtag{font-size:.68rem;color:var(--violet-ink);font-weight:580}
 .grp{border-bottom:1px solid var(--line)}
 .grp:last-child{border-bottom:none}
 .ghead{border-bottom:none;cursor:pointer;align-items:center}
@@ -193,8 +240,10 @@ label.fl span{display:block;font-size:.78rem;color:var(--ink-soft);margin-bottom
 .entry.sub .nm{font-weight:500;font-size:.94rem}
 .entry.sub:last-child{border-bottom:none;padding-bottom:0}
 .dot{display:inline-block;width:11px;height:11px;margin-right:5px;vertical-align:-1px;
-  background:no-repeat center/contain;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300B8D4' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.8 7h10.4l-1.1 12.4a2.2 2.2 0 0 1-2.2 2h-3.8a2.2 2.2 0 0 1-2.2-2Z'/%3E%3Cpath d='M5.4 7h13.2'/%3E%3C/svg%3E")}
+  background:var(--fluid);
+  --cup:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.8 7h10.4l-1.1 12.4a2.2 2.2 0 0 1-2.2 2h-3.8a2.2 2.2 0 0 1-2.2-2Z'/%3E%3Cpath d='M5.4 7h13.2'/%3E%3C/svg%3E");
+  -webkit-mask:var(--cup) no-repeat center/contain;
+  mask:var(--cup) no-repeat center/contain}
 
 /* tabs */
 nav.tabs{position:sticky;bottom:0;z-index:30;display:flex;justify-content:center;
@@ -205,12 +254,12 @@ nav.tabs button{flex:1 1 0;max-width:128px;padding:9px 2px 8px;color:var(--ink-s
   display:flex;flex-direction:column;align-items:center;gap:3px}
 nav.tabs button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;
   stroke-linecap:round;stroke-linejoin:round}
-nav.tabs button.on{color:var(--violet);font-weight:600}
+nav.tabs button.on{color:var(--violet-ink);font-weight:600}
 
 /* sheet */
 .sheet{position:fixed;inset:0;z-index:50;display:none}
 .sheet.on{display:block}
-.sheet .scrim{position:absolute;inset:0;background:rgba(29,26,56,.45)}
+.sheet .scrim{position:absolute;inset:0;background:var(--scrim)}
 .sheet .panel{position:absolute;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;
   max-height:92vh;overflow-y:auto;
   background:var(--paper);border-radius:18px 18px 0 0;
@@ -239,7 +288,7 @@ nav.tabs button.on{color:var(--violet);font-weight:600}
   border:2px solid var(--line);background:var(--card);position:relative}
 .cprow.on .cpbox{background:var(--violet);border-color:var(--violet)}
 .cprow.on .cpbox::after{content:'';position:absolute;left:6px;top:2px;width:5px;height:10px;
-  border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  border:solid var(--on-solid);border-width:0 2px 2px 0;transform:rotate(45deg)}
 @media(min-width:700px){#sh-copy .panel{top:24px;bottom:24px;border-radius:18px}}
 /* picker and new-food run full height: fixed header, body fills the rest */
 #sh-pick .panel,#sh-new .panel{top:0;max-height:none;border-radius:0;overflow:hidden;
@@ -278,7 +327,7 @@ nav.tabs button.on{color:var(--violet);font-weight:600}
   display:flex;align-items:center;gap:12px}
 #toast.on{opacity:1}
 #toast.on:has(.undo){pointer-events:auto}
-#toast .undo{flex:none;color:#fff;font-weight:700;font-size:.85rem;letter-spacing:.02em;
+#toast .undo{flex:none;color:var(--paper);font-weight:700;font-size:.85rem;letter-spacing:.02em;
   text-decoration:underline;text-underline-offset:3px;padding:4px 2px;margin:-4px 0}
 #toast .undo:active{opacity:.6}
 
@@ -286,7 +335,7 @@ svg.chart{width:100%;display:block;overflow:visible}
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:.73rem;color:var(--ink-soft)}
 .legend i{display:inline-block;width:10px;height:3px;border-radius:2px;margin-right:4px;vertical-align:3px}
 
-.warn{display:none;background:#FDE9F0;border:1px solid #F5A8C2;color:#9B1140;
+.warn{display:none;background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-ink);
   border-radius:10px;padding:10px 12px;font-size:.8rem;margin-bottom:11px;line-height:1.4}
 .warn.on{display:block}
 .warn b{font-weight:700}
@@ -296,7 +345,7 @@ nav.tabs button{position:relative}
 .prog{display:none;margin-top:10px;padding-top:9px;border-top:1px solid var(--line);
   font-size:.78rem;color:var(--ink-soft)}
 .prog.on{display:block}
-.prog b{font-variant-numeric:tabular-nums;color:var(--violet);font-weight:680}
+.prog b{font-variant-numeric:tabular-nums;color:var(--violet-ink);font-weight:680}
 .prog .prow{display:flex;align-items:center;justify-content:space-evenly;gap:6px}
 .prog .prow>span{flex:0 1 auto;min-width:0;text-align:center}
 .prog .pright{display:flex;align-items:center}
@@ -306,8 +355,8 @@ nav.tabs button{position:relative}
 }
 .wk{display:inline-flex;align-items:center;gap:5px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .wk b{font-weight:700}
-.wk.down b{color:#04795F}
-.wk.up b{color:#C21E56}
+.wk.down b{color:var(--ok-ink)}
+.wk.up b{color:var(--up-ink)}
 .wk.flat b,.wk.none{color:var(--ink-soft)}
 .wklbl{color:var(--ink-soft)}
 .spark{width:38px;height:13px;overflow:visible;flex:none}
@@ -320,11 +369,11 @@ nav.tabs button{position:relative}
 .wcard{cursor:pointer}
 .wcard:active{filter:brightness(.98)}
 @media(hover:hover) and (pointer:fine){.wcard:hover{border-color:var(--ink-soft)}}
-.wcard.done{background:#E9F7F3;border-color:#A6DECC}
+.wcard.done{background:var(--done-bg);border-color:var(--done-border)}
 /* a recorded weight is real data, not a hint — give it the weight of a figure */
 .wcard.done #wToday{color:var(--ink);font-weight:720;font-size:1.05rem;line-height:1.25;
   letter-spacing:-0.02em;font-variant-numeric:tabular-nums;margin-top:2px}
-.wcard.done #wToday .tick{color:#04795F;font-size:.75rem;font-weight:700;margin-left:6px;
+.wcard.done #wToday .tick{color:var(--ok-ink);font-size:.75rem;font-weight:700;margin-left:6px;
   letter-spacing:0;vertical-align:1px}
 .wcard:not(.done) #wToday{color:var(--ink-soft)}
 .streak{font-size:2.1rem;font-weight:680;letter-spacing:-0.03em;line-height:1}
@@ -334,7 +383,7 @@ nav.tabs button{position:relative}
   .btn.sec:hover,.navb:hover:not([disabled]),.shx:hover,.x:hover{background:var(--line)}
   .add:hover{filter:brightness(1.08)}
   .pill:hover:not(.on){background:var(--card);border-color:var(--ink-soft)}
-  .tpl .body[data-edit]:hover .nm,.tpl .body[data-meal-edit]:hover .nm{color:var(--violet)}
+  .tpl .body[data-edit]:hover .nm,.tpl .body[data-meal-edit]:hover .nm{color:var(--violet-ink)}
   .ghead:hover{background:var(--paper)}
   nav.tabs button:hover:not(.on){color:var(--ink)}
 }
@@ -346,7 +395,7 @@ nav.tabs button{position:relative}
   .sheet .panel{border-radius:18px 18px 0 0;padding-left:20px;padding-right:20px}
 }
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
-:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+:focus-visible{outline:2px solid var(--violet-ink);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -501,6 +550,19 @@ nav.tabs button{position:relative}
 
   <!-- DATA -->
   <section class="view" id="v-data">
+    <div class="card">
+      <div class="rowsp" style="align-items:flex-start;gap:10px">
+        <div style="min-width:0">
+          <h2>Appearance</h2>
+          <div class="tiny" id="themeHint"></div>
+        </div>
+        <div style="flex:none">
+          <button class="pill" data-theme-set="system">System</button>
+          <button class="pill" data-theme-set="light">Light</button>
+          <button class="pill" data-theme-set="dark">Dark</button>
+        </div>
+      </div>
+    </div>
     <div class="card">
       <h2 style="margin-bottom:10px">Daily targets</h2>
       <div class="grid2">
@@ -708,7 +770,44 @@ nav.tabs button{position:relative}
 
 <script>
 'use strict';
-const APP_VERSION='2026-09-17b';
+/* ---------- theme ---------- */
+// Kept in its own localStorage key rather than in a data store, so switching to
+// demo data can't change how the app looks.
+const THEME_KEY='meatlog_theme';
+let themePref='system';
+try{themePref=localStorage.getItem(THEME_KEY)||'system'}catch(e){}
+const darkMQ=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+
+function effectiveTheme(){
+  if(themePref==='dark')return 'dark';
+  if(themePref==='light')return 'light';
+  return (darkMQ&&darkMQ.matches)?'dark':'light';
+}
+function applyTheme(){
+  const t=effectiveTheme();
+  document.documentElement.setAttribute('data-theme',t);
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute('content',t==='dark'?'#13121D':'#2A2352');
+}
+applyTheme();
+if(darkMQ&&darkMQ.addEventListener)
+  darkMQ.addEventListener('change',()=>{if(themePref==='system')applyTheme()});
+
+function setTheme(pref){
+  themePref=pref;
+  try{localStorage.setItem(THEME_KEY,pref)}catch(e){}
+  applyTheme();paintTheme();
+  if(curTab==='trends')renderTrends();
+}
+function paintTheme(){
+  $$('[data-theme-set]').forEach(b=>b.classList.toggle('on',b.dataset.themeSet===themePref));
+  const h=$('#themeHint');
+  if(h)h.textContent=themePref==='system'
+    ? `Following your phone — currently ${effectiveTheme()}`
+    : `Always ${themePref}`;
+}
+
+const APP_VERSION='2026-09-18';
 const REAL_KEY='meatlog_v1', DEMO_KEY='meatlog_demo_v1', MODE_KEY='meatlog_mode';
 let demoMode=false;
 try{demoMode=localStorage.getItem(MODE_KEY)==='demo'}catch(e){}
@@ -1197,7 +1296,7 @@ function weekTrend(){
   const lo=Math.min(...pts.map(p=>p.kg)),hi=Math.max(...pts.map(p=>p.kg));
   const swing=hi-lo;
   const cls=net<-0.05?'down':net>0.05?'up':'flat';
-  const colour=cls==='down'?'#04795F':cls==='up'?'#C21E56':'#5F5A88';
+  const colour=cls==='down'?'var(--ok-ink)':cls==='up'?'var(--up-ink)':'var(--ink-soft)';
   const txt=cls==='flat'?'level':`${net>0?'+':'−'}${r1(Math.abs(net))} kg`;
   return {pts,html:`<span class="wk ${cls}" title="Last 7 days: ${txt}, swing ${r1(swing)} kg across ${pts.length} weigh-ins">`
     +`<span class="wklbl">7d</span> <b>${txt}</b>${sparkline(pts,colour)}</span>`};
@@ -1381,8 +1480,8 @@ function openServe(id,editEntry){
   $('#srvServe').innerHTML=esc(`Figures are for ${amountLabel(per,u)}`
     +(t.serve?` — ${t.serve}`:'')+(t.notes?` · ${t.notes}`:''))
     +(!srvEdit&&n(t.lastQty)>0&&r1(t.lastQty)!==r1(per)
-      ? `<br><span style="color:var(--violet)">Last time: ${esc(amountLabel(t.lastQty,u))}</span>`:'')
-    +(srvEdit?`<br><span style="color:var(--violet)">Editing what you logged${srvEdit.meal?` in ${esc(srvEdit.meal)}`:''}</span>`:'');
+      ? `<br><span style="color:var(--violet-ink)">Last time: ${esc(amountLabel(t.lastQty,u))}</span>`:'')
+    +(srvEdit?`<br><span style="color:var(--violet-ink)">Editing what you logged${srvEdit.meal?` in ${esc(srvEdit.meal)}`:''}</span>`:'');
   const tr=$('#srvTimeRow');
   tr.style.display=srvEdit?'block':'none';
   if(srvEdit){
@@ -2427,7 +2526,7 @@ function renderData(){
   $('#tNa').value=g.na;$('#tMl').value=g.ml;$('#tGoal').value=g.goal;
   $('#backupInfo').textContent=S.lastBackup?'Last backup '+pretty(S.lastBackup.slice(0,10))+'.':'No backup downloaded yet.';
   const bytes=new Blob([JSON.stringify(S)]).size;
-  drawBackupWarning();
+  drawBackupWarning();paintTheme();
   $('#storage').innerHTML=`${S.templates.length} saved foods · ${S.meals.length} meals · ${S.log.length} entries · ${S.weights.length} weigh-ins · ${(bytes/1024).toFixed(1)} KB`
     +`<br>Version ${APP_VERSION}`;
 }
@@ -2439,6 +2538,7 @@ $('#checkUpdate').addEventListener('click',async()=>{
     else toast('You are on the latest version');
   }catch(e){toast('Could not check — are you online?')}
 });
+$$('[data-theme-set]').forEach(b=>b.addEventListener('click',()=>setTheme(b.dataset.themeSet)));
 $('#saveTargets').addEventListener('click',()=>{
   S.targets={cal:n($('#tCal').value)||0,p:n($('#tP').value)||0,c:n($('#tC').value)||0,
     na:n($('#tNa').value)||0,ml:n($('#tMl').value)||0,goal:n($('#tGoal').value)||0};
